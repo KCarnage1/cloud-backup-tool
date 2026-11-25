@@ -165,10 +165,13 @@ def test_compression_is_deterministic(tmp_path):
 def test_broken_storage_location_is_a_failed_pass_not_a_crash(cfg):
     write(cfg.source / "a.txt", "data")
     cfg.backend.path.write_text("a file where the backup folder should be")
-    report = run_once(cfg, sleep=no_sleep)
+    delays = []
+    report = run_once(cfg, sleep=delays.append)
     assert (report.uploaded, report.failed) == (0, 1)
+    assert len(delays) == cfg.retries, "storage errors must go through the retry loop"
     state = State(cfg.state_file)
     assert state.pending() == ["a.txt"] and state.entries["a.txt"].last_error
+    assert "can't read" not in state.entries["a.txt"].last_error, "a storage problem must not be blamed on the source file"
     cfg.backend.path.unlink()
     assert run_once(cfg, sleep=no_sleep).uploaded == 1
     assert State(cfg.state_file).pending() == []

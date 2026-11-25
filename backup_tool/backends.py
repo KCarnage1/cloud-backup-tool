@@ -50,8 +50,11 @@ class FolderBackend(Backend):
             meta = dest.with_name(dest.name + ".meta.json")
             meta.write_text(json.dumps(metadata), encoding="utf-8")
         except OSError as e:
-            tmp.unlink(missing_ok=True)
-            raise BackendError(str(e)) from e
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise BackendError(e.strerror or str(e)) from e
 
     def get(self, key: str, dest: Path) -> dict[str, str]:
         src = self._path(key)

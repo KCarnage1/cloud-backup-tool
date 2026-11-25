@@ -82,9 +82,10 @@ def run_once(cfg: Config, backend: Backend | None = None, sleep: Callable[[float
                     del state.entries[rel]
                     continue
                 compress(src, gz)
-                err = upload_with_retry(backend, key, gz, {"sha256": entry.sha256, "size": str(entry.size)}, cfg, sleep)
             except OSError as e:
                 err = f"can't read {rel}: {e.strerror or e}"
+            else:
+                err = upload_with_retry(backend, key, gz, {"sha256": entry.sha256, "size": str(entry.size)}, cfg, sleep)
             entry.attempts += 1
             if err is None:
                 entry.uploaded, entry.last_error = True, ""
