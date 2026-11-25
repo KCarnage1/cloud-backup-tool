@@ -1,0 +1,23 @@
+# Copy to backup.toml and edit. Relative paths are resolved from this file's folder.
+source = "~/Documents"
+state_dir = "~/.backup-tool"
+interval_seconds = 300      # how often `watch` scans
+settle_seconds = 2          # ignore files modified this recently (they may still be mid-write)
+retries = 5                 # extra attempts per file within one pass
+backoff_base = 1            # seconds; doubles each retry, with jitter
+backoff_cap = 60
+exclude = ["*.tmp", "node_modules/*", ".git/*"]
+
+# Option 1: any folder (an external drive, a NAS share, a synced folder)
+[backend]
+type = "folder"
+path = "/mnt/backup"
+prefix = "laptop"
+
+# Option 2: an S3-compatible server such as a self-hosted MinIO.
+# Needs `pip install "cloud-backup-tool[s3]"`; credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY.
+# [backend]
+# type = "s3"
+# bucket = "backups"
+# endpoint_url = "http://localhost:9000"
+# prefix = "laptop"
