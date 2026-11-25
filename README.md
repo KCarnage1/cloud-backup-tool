@@ -40,6 +40,7 @@ Exit codes: `0` success, `1` some uploads or restores failed, `2` a problem in t
 - Watching is by polling, not file-system events, so changes show up on the next interval.
 - Very small files can end up larger after gzip. The tool doesn't skip them.
 - Files deleted from the source stay in the backup.
+- `status` reports what this tool uploaded. It doesn't re-check the storage, so files deleted from the storage by something else aren't noticed.
 
 ## Tests
 

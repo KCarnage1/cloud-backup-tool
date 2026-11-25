@@ -42,9 +42,9 @@ class FolderBackend(Backend):
 
     def put(self, key: str, file: Path, metadata: dict[str, str]) -> None:
         dest = self._path(key)
-        dest.parent.mkdir(parents=True, exist_ok=True)
         tmp = dest.with_name(dest.name + ".part")
         try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(file, tmp)
             os.replace(tmp, dest)
             meta = dest.with_name(dest.name + ".meta.json")

@@ -74,14 +74,17 @@ def run_once(cfg: Config, backend: Backend | None = None, sleep: Callable[[float
         for rel in todo:
             entry = state.entries[rel]
             src = cfg.source / rel
-            if not src.is_file() or sha256_of(src) != entry.sha256:
-                log.info("%s changed while queued; it will be picked up on the next pass", rel)
-                del state.entries[rel]
-                continue
             gz = Path(tmp) / "payload.gz"
-            compress(src, gz)
             key = safe_key(rel + ".gz")
-            err = upload_with_retry(backend, key, gz, {"sha256": entry.sha256, "size": str(entry.size)}, cfg, sleep)
+            try:
+                if not src.is_file() or sha256_of(src) != entry.sha256:
+                    log.info("%s changed while queued; it will be picked up on the next pass", rel)
+                    del state.entries[rel]
+                    continue
+                compress(src, gz)
+                err = upload_with_retry(backend, key, gz, {"sha256": entry.sha256, "size": str(entry.size)}, cfg, sleep)
+            except OSError as e:
+                err = f"can't read {rel}: {e.strerror or e}"
             entry.attempts += 1
             if err is None:
                 entry.uploaded, entry.last_error = True, ""

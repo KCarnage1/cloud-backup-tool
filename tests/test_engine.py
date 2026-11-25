@@ -160,3 +160,35 @@ def test_compression_is_deterministic(tmp_path):
     os.utime(f, (5, 5))
     compress(f, tmp_path / "2.gz")
     assert (tmp_path / "1.gz").read_bytes() == (tmp_path / "2.gz").read_bytes()
+
+
+def test_broken_storage_location_is_a_failed_pass_not_a_crash(cfg):
+    write(cfg.source / "a.txt", "data")
+    cfg.backend.path.write_text("a file where the backup folder should be")
+    report = run_once(cfg, sleep=no_sleep)
+    assert (report.uploaded, report.failed) == (0, 1)
+    state = State(cfg.state_file)
+    assert state.pending() == ["a.txt"] and state.entries["a.txt"].last_error
+    cfg.backend.path.unlink()
+    assert run_once(cfg, sleep=no_sleep).uploaded == 1
+    assert State(cfg.state_file).pending() == []
+
+
+def test_unreadable_source_file_fails_that_file_only(cfg, monkeypatch):
+    write(cfg.source / "ok.txt", "fine")
+    write(cfg.source / "locked.txt", "secret")
+    from backup_tool import engine
+    from backup_tool.scanner import scan, sha256_of
+    state = State(cfg.state_file)
+    scan(cfg.source, state, (), 0)
+    state.save()
+
+    def flaky_hash(path):
+        if path.name == "locked.txt":
+            raise PermissionError(13, "Permission denied")
+        return sha256_of(path)
+
+    monkeypatch.setattr(engine, "sha256_of", flaky_hash)
+    report = run_once(cfg, sleep=no_sleep)
+    assert report.uploaded == 1 and report.failed == 1
+    assert "can't read locked.txt" in State(cfg.state_file).entries["locked.txt"].last_error
